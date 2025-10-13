@@ -4,6 +4,10 @@ import java.nio.file.Files;
 import java.nio.file.InvalidPathException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 public class Terminal {
     public File TargetDir;
 
@@ -33,6 +37,69 @@ public class Terminal {
            TargetDir=ValidPath;
         }
          return;
+    }
+    private List<Path> LSHelper() {
+       
+        try ( Stream<Path> files = Files.walk(TargetDir.toPath(),1)){
+           
+            return files
+            .filter(path->!path.equals(TargetDir.toPath())).collect(Collectors.toList());
+
+        } catch (IOException e) {
+            e.printStackTrace();
+            return List.of(); 
+        }
+    }
+    public List<String> ls()
+    {
+        List<Path> paths = LSHelper();
+        List<String> subDir=new ArrayList<>();
+        for(Path p:paths)
+        {
+            String FileName=(p.getFileName().toString());
+           
+            // add slach if it is folder not file
+             // Mark symbolic links with '@'
+        if (Files.isSymbolicLink(p)) {
+            FileName += "@";
+        }
+        else if(Files.isDirectory(p))
+            {
+                FileName+="/";
+            }
+        else if(Files.isExecutable(p))
+            {
+                FileName+="*";
+            }
+            
+            // replace each space with dot
+            FileName=FileName.replace(" ", ".");
+            subDir.add(FileName);
+            
+        }
+        return subDir;
+    }
+    public List<String> minusLS()
+    {
+        List<Path> paths = LSHelper();
+        List<String> subDir=new ArrayList<>();
+        for(Path p:paths)
+        {
+            String FileName=(p.getFileName().toString());
+           
+            // add slach if it is folder not file
+             // Mark symbolic links with '@'
+        
+       if(Files.isExecutable(p))
+            {
+                FileName+="*";
+                // replace each space with dot
+                FileName=FileName.replace(" ", ".");
+                subDir.add(FileName);
+            }
+            
+        }
+        return subDir;
     }
    public boolean touch(String FilePath) {
     if (!isValidFilePath(FilePath)) {
@@ -87,7 +154,8 @@ public class Terminal {
 
   public static void main(String[] args) {
     Terminal t=new Terminal(); 
-    t.cd(".");
-     System.out.println(t.TargetDir.getAbsolutePath());
+    List<String>subdirectories= t.ls();
+    subdirectories.forEach(System.out::println);
+    
 }
 }
