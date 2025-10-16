@@ -8,34 +8,38 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import java.util.Scanner;
 public class Terminal {
-    public File TargetDir;
+    public static File TargetDir;
+    Parser parser;
 
     public Terminal()
     {
-        TargetDir=new File(pwd());
+        TargetDir=new File(Paths.get("").toAbsolutePath().toString());
+        parser=new Parser();
     }
     public String pwd()
     {
-        String CurrentPath = Paths.get("").toAbsolutePath().toString();
+        String CurrentPath = TargetDir.getAbsolutePath().toString();
         return CurrentPath;
     }
-    public void cd(String path)
+    public void cd(String[] args)
     {
-        if (path == null || path.isEmpty()) 
-        TargetDir=new File(pwd());
-        else if(path.equals("..") && TargetDir.getParentFile()!=null   )
+        if ( args.length==1) 
+        {
+          TargetDir=new File(pwd());
+          return;
+        }
+        else if(args[1].equals("..") && TargetDir.getParentFile()!=null   )
         {
            TargetDir=TargetDir.getParentFile();
             return;
         }
-        else if(path.equals("."))
+        else if(args[1].equals("."))
         return;
-        File ValidPath=new File(path);
-        if(ValidPath.exists() && ValidPath.isDirectory())
-        {
-           TargetDir=ValidPath;
-        }
+
+        File Validargs=new File(args[1]);
+        TargetDir=Validargs;
          return;
     }
     private List<Path> LSHelper() {
@@ -102,9 +106,7 @@ public class Terminal {
         return subDir;
     }
    public boolean touch(String FilePath) {
-    if (!isValidFilePath(FilePath)) {
-        return false;
-    }
+   
 
     try {
         Path path = Paths.get(FilePath);
@@ -151,11 +153,52 @@ public class Terminal {
         }
     }
 
-
+public void chooseCommandAction(){
+    if(parser.commandName.equals("pwd") && parser.args.length==1)
+    {
+      System.out.println(pwd());
+      return;
+    }   
+    else if(parser.commandName.equals("cd"))
+    {
+       
+        cd(parser.args);
+        return;
+    }
+    else if(parser.commandName.equals("ls") && parser.args.length==1)
+    {
+        List<String> subDir=ls();
+        subDir.forEach(item->System.out.println(item));
+        return;
+    }
+    else if(parser.commandName.equals("touch"))
+    {
+       boolean done=touch(parser.args[1]);
+       if(done)
+       return;
+       else
+        {
+            System.out.println(parser.commandName +parser.args[1]+": command not found.");
+            return;
+        }
+    }
+}
   public static void main(String[] args) {
-    Terminal t=new Terminal(); 
-    List<String>subdirectories= t.ls();
-    subdirectories.forEach(System.out::println);
-    
+   Terminal terminal=new Terminal();
+  
+   Scanner scanner = new Scanner(System.in);
+    while (true) {
+    System.out.print("> ");
+    String instruction = scanner.nextLine(); 
+    if(!terminal.parser.parse(instruction))
+    {
+    System.out.println(instruction+": command not found.");
+    continue;
+    }
+    terminal.chooseCommandAction();
+    // System.out.println();
+    // System.out.println(terminal.TargetDir.getAbsolutePath().toString());
+    }
+   
 }
 }

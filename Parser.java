@@ -16,7 +16,8 @@ public boolean parse(String input){
     
     if(!IsValidCommandName())
         return false;
-    
+    else if(!IsValidSecondPart())
+    return false;
     return true;
 }
 public String getcommandName(){
@@ -25,11 +26,11 @@ public String getcommandName(){
 public String[] getArgs(){
     return args;
 }
-private boolean IsValidCommandName()
-{
-    if(commandName=="cd" || commandName=="ls" || commandName=="touch" || commandName=="pwd" || commandName=="zip" || commandName=="unzip" 
-    || commandName=="wc" || commandName=="cat" || commandName=="rm" || commandName=="cp" || commandName=="rmdir" || commandName=="mkdir" )
-       return true;
+private boolean IsValidCommandName() {
+    if (commandName.equals("cd") || commandName.equals("ls") || commandName.equals("touch") || commandName.equals("pwd") || commandName.equals("zip") || commandName.equals("unzip")
+            || commandName.equals("wc") || commandName.equals("cat") || commandName.equals("rm") || commandName.equals("cp") || commandName.equals("rmdir") || commandName.equals("mkdir")) {
+        return true;
+    }
 
     return false;
 }
@@ -38,6 +39,8 @@ private boolean IsValidSecondPart()
 
     if("cd".equals(commandName) )
     {
+         if(args.length==1)
+         return true;
          if ("..".equals(args[1])) {
         return true; 
     }
@@ -46,11 +49,11 @@ private boolean IsValidSecondPart()
     }
     else if("pwd".equals(commandName))
     {
-        if(args.length>1)
+        if(args.length==1)
         {
-            return false;
+            return true;
         }
-        return true;
+        return false;
     }
     else if("touch".equals(commandName))
     {
