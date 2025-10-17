@@ -115,8 +115,8 @@ public class Terminal {
         if (path.getParent() != null) {
             Files.createDirectories(path.getParent());
         }
-
-        File NewFile = new File(FilePath);
+        Path p = Terminal.TargetDir.toPath().resolve(FilePath).normalize();
+        File NewFile = new File(p.toString());
 
         
         if (NewFile.createNewFile()) {
