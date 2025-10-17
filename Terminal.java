@@ -37,8 +37,8 @@ public class Terminal {
         }
         else if(args[1].equals("."))
         return;
-
-        File Validargs=new File(args[1]);
+        Path p = Terminal.TargetDir.toPath().resolve(args[1]).normalize();
+        File Validargs=new File(p.toString());
         TargetDir=Validargs;
          return;
     }

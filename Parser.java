@@ -44,7 +44,8 @@ private boolean IsValidSecondPart()
          if ("..".equals(args[1])) {
         return true; 
     }
-        Path p=Paths.get(args[1]);
+       
+        Path p = Terminal.TargetDir.toPath().resolve(args[1]).normalize();
         return Files.exists(p) && Files.isDirectory(p);
     }
     else if("pwd".equals(commandName))
