@@ -13,6 +13,19 @@ class Parser {
 
         input = input.trim();
 
+       //handles redirect functions ">"
+        if (input.contains(">")) {
+            int idx = input.indexOf(">");
+            String left = input.substring(0, idx).trim();
+            String right = input.substring(idx + 1).trim();
+            if (right.isEmpty())
+                return false;
+            commandName = "redirect";
+            args = new String[]{ left, right };
+            return true;
+        }
+
+        
         // Handle append: text >> file
         if (input.contains(">>")) {
             int idx = input.indexOf(">>");
@@ -60,7 +73,7 @@ class Parser {
         if (commandName.equals("cd") || commandName.equals("ls") || commandName.equals("touch") || commandName.equals("pwd")
                 || commandName.equals("zip") || commandName.equals("unzip") || commandName.equals("wc") || commandName.equals("cat")
                 || commandName.equals("rm") || commandName.equals("cp") || commandName.equals("rmdir") || commandName.equals("mkdir")
-                || commandName.equals("append") || commandName.equals("heredoc")) {
+                || commandName.equals("append") || commandName.equals("redirect") || commandName.equals("heredoc")) {
             return true;
         }
 
@@ -115,7 +128,24 @@ class Parser {
             if (args.length != 2)
                 return false;
             return true;
+        }else if ("cat".equals(commandName)){
+            //args = [file, or file]
+            if (args.length < 2){
+                return false;
+            }
+            return true;
+        }else if ("wc".equals(commandName)){
+            //args = [file]
+            if(args.length != 2){
+                return false;
+            }
+            return true;
+        }else if ("redirect".equals(commandName)) {
+            if (args.length != 2)
+                return false;
+            return true;
         }
+
         return false;
     }
 
