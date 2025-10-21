@@ -191,6 +191,15 @@ public class Terminal {
         } else if (parser.commandName.equals("heredoc")) {
             handleHereDoc(parser.args, sc);
             return;
+        } else if (parser.commandName.equals("cat")){
+            cat(parser.args);   
+            return;
+        } else if (parser.commandName.equals("wc")){
+            wc(parser.args);
+            return;
+        }else if (parser.commandName.equals("redirect")){
+            handleRedirect(parser.args);
+            return;
         }
     }
 
@@ -301,6 +310,96 @@ public class Terminal {
         }
     }
 
+    //concatenating functions takes one or two args to print
+    private void cat(String[] args){
+        try {
+             if (args.length == 2){
+                    System.out.println("printing file:");
+                } else if (args.length == 3){
+                    System.out.println("concatenating and printing files:");
+                }
+            for(int i = 1; i < args.length; i++){
+                BufferedReader reader = new BufferedReader(new FileReader(args[i]));  
+                String line;
+                while ( (line = reader.readLine()) != null){
+                    System.out.println(line);
+                }
+                reader.close();
+            }
+        } catch (IOException e){
+            e.printStackTrace();
+        }
+    }
+
+    //word count: args = [file]
+    private void wc(String[] args){
+        try{
+            BufferedReader reader = new BufferedReader(new FileReader(args[1]));
+            String line;
+
+            int lineCount = 0;
+            int wordCount = 0;
+            int charCount = 0;
+
+            while ((line = reader.readLine()) != null) {
+                lineCount++;
+                charCount += line.length();
+                String[] words = line.trim().split("\\s+");
+                if (!line.trim().isEmpty()) {
+                    wordCount += words.length;
+                }
+            }
+            reader.close();
+
+        System.out.println("Lines: " + lineCount);
+        System.out.println("Words: " + wordCount);
+        System.out.println("Characters: " + charCount);
+        System.out.println("File: " + args[1]);
+        } catch (IOException e){
+            e.printStackTrace();
+        }
+
+    }
+
+    // Redirect: args = [command, file]
+    private void handleRedirect(String[] args) {
+        String innerCommand = args[0];
+        String fileName = args[1];
+        Path target = Terminal.TargetDir.toPath().resolve(fileName).normalize();
+
+        try {
+            if (target.getParent() != null) {
+                Files.createDirectories(target.getParent());
+            }
+           
+            java.io.ByteArrayOutputStream baos = new java.io.ByteArrayOutputStream();
+            java.io.PrintStream ps = new java.io.PrintStream(baos);
+            java.io.PrintStream oldOut = System.out;
+        
+            System.setOut(ps);
+           
+            Parser innerParser = new Parser();
+            if (innerParser.parse(innerCommand)) {
+                this.parser = innerParser;
+                chooseCommandAction();
+            } else {
+                System.out.println(innerCommand + ": command not found.");
+            }
+          
+            System.out.flush();
+            System.setOut(oldOut);
+
+            try (FileWriter fw = new FileWriter(target.toFile(), false)) {
+                fw.write(baos.toString());
+            }
+
+            System.out.println("Output written to: " + target.toString());
+
+        } catch (IOException e) {
+            System.err.println("sys_redirect error: " + e.getMessage());
+        }
+    }
+    
     // Append: args = [text, file]
     private void handleAppend(String[] args) {
         String text = args[0];
