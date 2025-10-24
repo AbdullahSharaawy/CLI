@@ -141,17 +141,30 @@ class Parser {
                 return false;
             return true;
         }else if ("cat".equals(commandName)){
-            //args = [file, or file]
-            if (args.length < 2){
+            //args = [file, || file]
+            if (args.length < 2 || args.length > 3){
+                System.out.println("Error: wrong number of argument");
                 return false;
+            }else if (args.length == 2){
+                if(!isWritableFile(args[1])){
+                    System.out.println("Error: not a file");
+                    return false;
+                }
+            }else if (args.length == 3){
+               if(!isWritableFile(args[1]) || !isWritableFile(args[2])){
+                    System.out.println("Error: not a file");
+                    return false;
+                }
             }
             return true;
         }else if ("wc".equals(commandName)){
             //args = [file]
             if(args.length != 2){
                 return false;
-            }
-            return true;
+            }else if (!isValidSource(args[1])){
+                System.out.println("Error: not a file");
+                return false;
+            }return true; 
         }else if ("redirect".equals(commandName)) {
             if (args.length != 2)
                 return false;

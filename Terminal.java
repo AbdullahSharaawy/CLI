@@ -482,17 +482,14 @@ private void rm(String[] args) {
             }
             reader.close();
 
-        System.out.println("Lines: " + lineCount);
-        System.out.println("Words: " + wordCount);
-        System.out.println("Characters: " + charCount);
-        System.out.println("File: " + args[1]);
+        System.out.println(lineCount + wordCount + charCount + args[1]);
         } catch (IOException e){
             e.printStackTrace();
         }
 
     }
 
-    // Redirect: args = [command, file]
+        // Redirect: args = [command, file]
     private void handleRedirect(String[] args) {
         String innerCommand = args[0];
         String fileName = args[1];
@@ -505,23 +502,25 @@ private void rm(String[] args) {
            
             java.io.ByteArrayOutputStream baos = new java.io.ByteArrayOutputStream();
             java.io.PrintStream ps = new java.io.PrintStream(baos);
-            java.io.PrintStream oldOut = System.out;
-        
-            System.setOut(ps);
+            PrintStream oldOut = System.out;
+            System.setOut(ps);  
            
             Parser innerParser = new Parser();
-            if (innerParser.parse(innerCommand)) {
+            boolean parsed = innerParser.parse(innerCommand);
+
+            if (parsed) {
                 this.parser = innerParser;
                 chooseCommandAction();
+                System.out.flush();
+                System.setOut(oldOut);
             } else {
-                System.out.println(innerCommand + ": command not found.");
+                System.setOut(oldOut);
+                System.out.println(baos.toString());
+                return;
             }
           
-            System.out.flush();
-            System.setOut(oldOut);
-
-            try (FileWriter fw = new FileWriter(target.toFile(), false)) {
-                fw.write(baos.toString());
+            try (FileWriter outfile = new FileWriter(target.toFile(), false)) {
+                outfile.write(baos.toString());
             }
 
             System.out.println("Output written to: " + target.toString());
