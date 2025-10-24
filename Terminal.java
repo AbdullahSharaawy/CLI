@@ -23,6 +23,7 @@ import java.nio.file.FileVisitResult;
 import java.nio.file.SimpleFileVisitor;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.nio.file.attribute.FileTime;
+import java.io.FileReader;
 
 public class Terminal {
     public static File TargetDir;
