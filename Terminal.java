@@ -1,5 +1,5 @@
 import java.io.BufferedReader;
-import java.io.BufferedWriter;
+
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
@@ -582,7 +582,7 @@ private void rm(String[] args) {
             System.out.print("> ");
             String instruction = scanner.nextLine();
             if (!terminal.parser.parse(instruction)) {
-                System.out.println(instruction + ": command not found.");
+                System.out.println(instruction + "Error: command not found or invalid paramaters are entered.");
                 continue;
             }
             terminal.chooseCommandAction();
