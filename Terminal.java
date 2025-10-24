@@ -578,13 +578,19 @@ private void rm(String[] args) {
         Terminal terminal = new Terminal();
 
         Scanner scanner = new Scanner(System.in);
+        
         while (true) {
             System.out.print("> ");
+            
             String instruction = scanner.nextLine();
+            instruction=instruction.strip();
+            if(instruction.toLowerCase().contains("exist"))
+                break;
             if (!terminal.parser.parse(instruction)) {
-                System.out.println(instruction + "Error: command not found or invalid paramaters are entered.");
+                System.out.println("Error: command not found or invalid paramaters are entered.");
                 continue;
             }
+
             terminal.chooseCommandAction();
         }
 
