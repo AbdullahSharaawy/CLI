@@ -132,7 +132,6 @@ public class Terminal {
             return false;
         }
     }
-
     private boolean isValidFilePath(String path) {
         try {
 
@@ -155,6 +154,129 @@ public class Terminal {
         }
     }
 
+
+// Copy file (and directory with or without -r flag)
+private void cp(String[] args) {
+    boolean recursive = false;
+    String source, destination;
+    
+    // Parse arguments for cp -r
+    if (args.length == 4 && "-r".equals(args[1])) {
+        recursive = true;
+        source = args[2];
+        destination = args[3];
+    } else if (args.length == 3) {
+        source = args[1];
+        destination = args[2];
+    } else {
+        System.err.println("Usage: cp [source] [destination]  or  cp -r [source] [destination]");
+        return;
+    }
+    
+    Path srcPath = Terminal.TargetDir.toPath().resolve(source).normalize();
+    Path dstPath = Terminal.TargetDir.toPath().resolve(destination).normalize();
+    
+    try {
+        if (!Files.exists(srcPath)) {
+            System.err.println("cp: " + source + ": No such file or directory");
+            return;
+        }
+        
+        if (Files.isDirectory(srcPath)) {
+            if (!recursive) {
+                System.err.println("cp: " + source + " is a directory (not copied)");
+                System.err.println("Use cp -r to copy directories recursively");
+                return;
+            }
+            copyDirectoryRecursive(srcPath, dstPath);
+        } else {
+            copyFile(srcPath, dstPath);
+        }
+        
+        System.out.println("Copied: " + source + " → " + destination);
+        
+    } catch (IOException e) {
+        System.err.println("cp error: " + e.getMessage());
+    }
+}
+
+// Helper method to copy a single file
+private void copyFile(Path source, Path destination) throws IOException {
+    if (Files.isDirectory(destination)) {
+        // If destination is a directory, copy file into it with same name
+        destination = destination.resolve(source.getFileName());
+    }
+    Files.copy(source, destination, StandardCopyOption.REPLACE_EXISTING);
+}
+
+// Helper method to copy directory recursively
+private void copyDirectoryRecursive(Path source, Path destination) throws IOException {
+    if (Files.isRegularFile(destination)) {
+        throw new IOException("Cannot copy directory to a file");
+    }
+    
+    if (!Files.exists(destination)) {
+        Files.createDirectories(destination);
+    }
+    
+    // Walk through source directory and copy each file
+    Files.walk(source).forEach(srcPath -> {
+        try {
+            Path relativePath = source.relativize(srcPath);
+            Path dstPath = destination.resolve(relativePath);
+            
+            if (Files.isDirectory(srcPath)) {
+                if (!Files.exists(dstPath)) {
+                    Files.createDirectories(dstPath);
+                }
+            } else {
+                Files.copy(srcPath, dstPath, StandardCopyOption.REPLACE_EXISTING);
+            }
+        } catch (IOException e) {
+            throw new RuntimeException("Failed to copy: " + srcPath, e);
+        }
+    });
+}
+
+// Remove file or directory
+private void rm(String[] args) {
+    if (args.length != 2) {
+        System.err.println("Usage: rm [file]");
+        return;
+    }
+    
+    String target = args[1];
+    Path targetPath = Terminal.TargetDir.toPath().resolve(target).normalize();
+    
+    try {
+        if (!Files.exists(targetPath)) {
+            System.err.println("rm: " + target + ": No such file or directory");
+            return;
+        }
+        
+        if (Files.isDirectory(targetPath)) {
+            // Check if directory is empty
+            try (Stream<Path> entries = Files.list(targetPath)) {
+                if (entries.findAny().isPresent()) {
+                    System.err.println("rm: " + target + ": Directory not empty");
+                    System.err.println("Use rmdir to remove directories");
+                    return;
+                }
+            }
+            Files.delete(targetPath);
+        } else {
+            Files.delete(targetPath);
+        }
+        
+        System.out.println("Removed: " + target);
+        
+    } catch (IOException e) {
+        System.err.println("rm error: " + e.getMessage());
+    }
+}
+
+    
+
     public void chooseCommandAction() {
         if (parser.commandName.equals("pwd") && parser.args.length == 1) {
             System.out.println(pwd());
@@ -175,6 +297,12 @@ public class Terminal {
                 System.out.println(parser.commandName + parser.args[1] + ": command not found.");
                 return;
             }
+        } else if (parser.commandName.equals("cp")) {
+            cp(parser.args);
+            return;
+        } else if (parser.commandName.equals("rm")) {
+            rm(parser.args);
+            return;
         } else if (parser.commandName.equals("zip")) {
             // pass args except command name
             String[] callArgs = new String[parser.args.length - 1];

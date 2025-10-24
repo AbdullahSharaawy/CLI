@@ -100,7 +100,19 @@ class Parser {
             if (args.length != 2)
                 return false;
             return isValidToCreate(args[1]);
-        } else if ("ls".equals(commandName)) {
+        }  else if ("cp".equals(commandName)) {
+        if (args.length < 2) return false;
+                if ("-r".equals(args[1])) {
+            if (args.length != 4) return false; 
+            return isValidSource(args[2]) && isValidDestination(args[3]);
+        } else {
+            if (args.length != 3) return false; 
+            return isValidSource(args[1]) && isValidDestination(args[2]);
+        }
+    } else if ("rm".equals(commandName)) {
+        if (args.length != 2) return false;
+        return isValidSource(args[1]);
+    } else if ("ls".equals(commandName)) {
             if (args.length == 1)
                 return true;
             else if (">".equals(args[1]) || ">>".equals(args[1])) {
@@ -176,4 +188,28 @@ class Parser {
         }
         return false;
     }
-}
+
+    private boolean isValidSource(String path) {
+    try {
+        Path srcPath = Terminal.TargetDir.toPath().resolve(path).normalize();
+        return Files.exists(srcPath);
+    } catch (Exception e) {
+        return false;
+    }
+    }
+
+   private boolean isValidDestination(String path) {
+    try {
+        Path dstPath = Terminal.TargetDir.toPath().resolve(path).normalize();
+        // For destination, we only need to check if the parent directory exists and is writable
+        Path parent = dstPath.getParent();
+        if (parent == null) {
+            // If no parent, it's current directory
+            return Files.isWritable(Terminal.TargetDir.toPath());
+        }
+        return Files.exists(parent) && Files.isWritable(parent);
+    } catch (Exception e) {
+        return false;
+    }
+    }
+} 
