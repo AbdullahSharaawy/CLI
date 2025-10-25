@@ -184,17 +184,28 @@ class Parser {
         }
         
         else if ("unzip".equals(commandName)) {
-            return (args.length == 2) && fileExists(args[1]);
+            if (args.length == 2) {
+                return fileExists(args[1]);
+            }
+            if (args.length == 4 && "-d".equals(args[2])) {
+                return fileExists(args[1]) && parentDirectoryIsValid(args[3]);
+            }
+            return false;
         }
 
         else if ("mkdir".equals(commandName)) {
-            return (args.length == 2) && isValidToCreate(args[1]);
+            if (args.length < 2) {
+                return false;
+            }
+            return Arrays.stream(args, 1, args.length).allMatch(this::isValidToCreate);
         }
         
         else if ("rmdir".equals(commandName)) {
-            return (args.length == 2) && directoryExists(args[1]);
+            if (args.length != 2) {
+                return false; 
+            }
+            return ("*".equals(args[1]) || directoryExists(args[1]));
         }
-    
         else if ("append".equals(commandName)) {
             return args.length == 2;
         }
@@ -253,19 +264,20 @@ public class Terminal {
 
     public void cd(String[] args) {
         if (args.length == 1) {
-            TargetDir = new File(pwd());
+                String homePath = System.getProperty("user.home");
+                TargetDir = new File(homePath);
+                return;
+            }
+            else if (args[1].equals("..") && TargetDir.getParentFile() != null) {
+                TargetDir = TargetDir.getParentFile();
+                return;
+            }
+            else if (args[1].equals("."))
+                return;
+            Path p = Terminal.TargetDir.toPath().resolve(args[1]).normalize();
+            File Validargs = new File(p.toString());
+            TargetDir = Validargs;
             return;
-        }
-        else if (args[1].equals("..") && TargetDir.getParentFile() != null) {
-            TargetDir = TargetDir.getParentFile();
-            return;
-        }
-        else if (args[1].equals("."))
-            return;
-        Path p = Terminal.TargetDir.toPath().resolve(args[1]).normalize();
-        File Validargs = new File(p.toString());
-        TargetDir = Validargs;
-        return;
     }
 
     private List<Path> LSHelper() {
@@ -541,18 +553,26 @@ public class Terminal {
         }
     }
 
-    private void sys_unzip(String[] args) {
-        if (args.length != 1) {
-            System.err.println("Usage: unzip [input.zip]");
+private void sys_unzip(String[] args) {
+        String inputZip;
+        Path destinationPath;
+        if (args.length == 3 && "-d".equals(args[1])) {
+            inputZip = args[0];
+            destinationPath = Terminal.TargetDir.toPath().resolve(args[2]).normalize();
+        } else if (args.length == 1) {
+            inputZip = args[0];
+            destinationPath = Terminal.TargetDir.toPath(); // <-- المسار الحالي
+        } else {
+            System.err.println("Usage: unzip [input.zip] [-d destination_path]");
             return;
         }
-        String inputZip = args[0];
+
         Path zipPath = Terminal.TargetDir.toPath().resolve(inputZip).normalize();
 
         try (ZipInputStream zis = new ZipInputStream(new FileInputStream(zipPath.toFile()))) {
             ZipEntry entry;
             while ((entry = zis.getNextEntry()) != null) {
-                Path outPath = Terminal.TargetDir.toPath().resolve(entry.getName()).normalize();
+                Path outPath = destinationPath.resolve(entry.getName()).normalize();
                 if (entry.isDirectory()) {
                     Files.createDirectories(outPath);
                 } else {
@@ -561,7 +581,7 @@ public class Terminal {
                     }
                     Files.copy(zis, outPath, StandardCopyOption.REPLACE_EXISTING);
                 }
-                System.out.println("extracted: " + entry.getName());
+                System.out.println("extracted: " + entry.getName() + " to " + outPath.toString());
                 zis.closeEntry();
             }
             System.out.println("UNZIP completed.");
@@ -574,7 +594,8 @@ public class Terminal {
         StringBuilder output = new StringBuilder(); 
         try {
             for(int i = 1; i < args.length; i++){
-                BufferedReader reader = new BufferedReader(new FileReader(args[i]));  
+                Path filePath = Terminal.TargetDir.toPath().resolve(args[i]).normalize();
+                BufferedReader reader = new BufferedReader(new FileReader(filePath.toFile()));  
                 String line;
                 while ( (line = reader.readLine()) != null){
                     output.append(line).append(System.lineSeparator());
@@ -588,9 +609,10 @@ public class Terminal {
         return output.toString(); 
     }
 
-    private String wc(String[] args){
+private String wc(String[] args){
         try{
-            BufferedReader reader = new BufferedReader(new FileReader(args[1]));
+            Path filePath = Terminal.TargetDir.toPath().resolve(args[1]).normalize();
+            BufferedReader reader = new BufferedReader(new FileReader(filePath.toFile()));
             String line;
 
             int lineCount = 0;
@@ -724,28 +746,76 @@ public class Terminal {
     }
 
     private void mkdir(String[] args) {
-        try {
-            Path path = Terminal.TargetDir.toPath().resolve(args[1]).normalize();
-            Files.createDirectory(path);
-            System.out.println("Directory created: " + args[1]);
-        } catch (IOException e) {
-            System.err.println("mkdir error: " + e.getMessage());
+        for (int i = 1; i < args.length; i++) {
+            String dirName = args[i];
+            try {
+                Path path = Terminal.TargetDir.toPath().resolve(dirName).normalize();
+                Files.createDirectory(path);
+                System.out.println("Directory created: " + dirName);
+            } catch (IOException e) {
+                System.err.println("mkdir error for '" + dirName + "': " + e.getMessage());
+            }
         }
     }
 
-    private void rmdir(String[] args) {
-        Path path = Terminal.TargetDir.toPath().resolve(args[1]).normalize();
+    private boolean isDirectoryEmpty(Path path) {
+        if (!Files.isDirectory(path)) {
+            return false;
+        }
         try (Stream<Path> entries = Files.list(path)) {
-            if (entries.findAny().isPresent()) {
-                System.err.println("rmdir error: Directory is not empty: " + args[1]);
-                return;
-            }
-            Files.delete(path);
-            System.out.println("Directory removed: " + args[1]);
+            return !entries.findAny().isPresent();
         } catch (IOException e) {
-            System.err.println("rmdir error: " + e.getMessage());
+            return false; 
         }
     }
+private void rmdir(String[] args) {
+    String target = args[1];
+    if ("*".equals(target)) {
+        List<Path> dirsInCurrent;
+        try (Stream<Path> entries = Files.list(TargetDir.toPath())) {
+            dirsInCurrent = entries.filter(Files::isDirectory).collect(Collectors.toList());
+        } catch (IOException e) {
+            System.err.println("rmdir error: Failed to read current directory: " + e.getMessage());
+            return;
+        }
+
+        if (dirsInCurrent.isEmpty()) {
+            System.out.println("rmdir: No directories found in current location.");
+            return;
+        }
+        int removedCount = 0;
+        for (Path path : dirsInCurrent) {
+            if (isDirectoryEmpty(path)) {
+                try {
+                    Files.delete(path);
+                    System.out.println("Removed empty directory: " + path.getFileName());
+                    removedCount++;
+                } catch (IOException e) {
+                    System.err.println("rmdir error deleting " + path.getFileName() + ": " + e.getMessage());
+                }
+            } else {
+                System.err.println("rmdir error: Directory is not empty: " + path.getFileName());
+            }
+        }
+        if(removedCount == 0 && !dirsInCurrent.isEmpty()){
+            System.out.println("rmdir: No empty directories to remove.");
+        }
+    }
+    else {
+        Path path = Terminal.TargetDir.toPath().resolve(target).normalize();
+        
+        if (isDirectoryEmpty(path)) {
+            try {
+                Files.delete(path);
+                System.out.println("Directory removed: " + target);
+            } catch (IOException e) {
+                System.err.println("rmdir error: " + e.getMessage());
+            }
+        } else {
+            System.err.println("rmdir error: Directory is not empty: " + target);
+        }
+    }
+}
 
     private List<String> handleHelp() {
         List<String> helpLines = new ArrayList<>();
